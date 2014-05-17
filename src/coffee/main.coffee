@@ -129,19 +129,19 @@ getElements = (name) ->
     getElements.cache[name] or document.querySelectorAll name
 
 
-getElements 'li'
+# getElements 'li'
 # console.log getElements.cache
 
-elems =
-  length: 0
-  add: (elem) ->
-    Array::push.call this, elem
-
-  gather: (id) ->
-    @add document.querySelector id
-
-elems.gather '#main'
-elems.gather '#list'
+# elems =
+#   length: 0
+#   add: (elem) ->
+#     Array::push.call this, elem
+#
+#   gather: (id) ->
+#     @add document.querySelector id
+#
+# elems.gather '#main'
+# elems.gather '#list'
 # console.log elems
 
 smallest = (array) ->
@@ -172,7 +172,53 @@ merge(obj1, obj2)
 console.log obj1
 console.log obj2
 
+
 multiMax = (multi) ->
-  multi * Math.max.apply Math, Array::slice.call arguments, 1
+  multi * Math.max.apply(Math, Array::slice.call(arguments, 1))
+  # console.log Math.max.apply Math, arguments
+  # console.log multi
 
 console.log multiMax 728, 45, 32, 45, 76, 92
+
+
+###*
+ * Adds or replaces a method in an object
+ * @param {Object}   object [The object that will receive the new method]
+ * @param {String}   name   [The name for the new method]
+ * @param {Function} fn     [The function that will be passed as a new method of Object]
+###
+addMethod = (object, name, fn) ->
+  old = object[name]
+  object[name] = ->
+    if fn.length is arguments.length
+      fn.apply this, arguments
+    else if typeof old is 'function'
+      old.apply this, arguments
+
+
+ninjas =
+  values: [
+    "Dean Edwards"
+    "Sam Stephenson"
+    "Alex Russell"
+    "Dean Russell"
+  ]
+
+addMethod ninjas, 'find', () ->
+  @values
+
+addMethod ninjas, 'find', (name) ->
+  ninja for ninja in @values when ninja.indexOf(name) isnt -1
+
+addMethod ninjas, 'find', (first, last) ->
+  ninja for ninja in @values when ninja is "#{first} #{last}"
+
+console.log ninjas.find()
+console.log ninjas.find('Dean')
+console.log ninjas.find('Dean','Edwards')
+
+
+isFunction = (fn) ->
+  Object::toString.call(fn) is "[object Function]"
+
+console.log isFunction(ninjas.find)
