@@ -17,31 +17,30 @@ tooLate = 'ronin'
 outerFunction()
 later('wakizashi')
 
-Ninja = ->
-  feints = 0
-  @getFeints = ->
-    feints
-  @feint = ->
-    feints++
-    return
-  return this
+# Ninja = ->
+#   feints = 0
+#   @getFeints = ->
+#     feints
+#   @feint = ->
+#     feints++
+#     return
+#   return this
+#
+# ninja = new Ninja()
+# console.log ninja.feint()
+# console.log ninja.feints
+bind = (context, name) ->
+  ->
+    context[name].apply(context,arguments)
 
-ninja = new Ninja()
-console.log ninja.feint()
-console.log ninja.feints
 
-animateIt = (elementId) ->
-  elem = document.querySelector elementId
-  tick = 0
-  timer = setInterval ->
-    if tick < 100
-      elem.style.left = elem.style.top = tick + "px"
-      tick++
-    else
-      clearInterval(timer)
-      console.log tick
-      console.log elem
-      console.log timer
-  , 10
+button =
+  clicked: false
+  counter: 0
+  click: ->
+    @clicked = true
+    @counter++
+    console.log "The button has been clicked #{@counter} times"
 
-animateIt('#box')
+elem = document.querySelector '#button'
+elem.addEventListener 'click', bind(button,'click'), false

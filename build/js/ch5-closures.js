@@ -1,5 +1,5 @@
 'use strict';
-var Ninja, animateIt, later, ninja, outerFunction, outerValue, tooLate;
+var bind, button, elem, later, outerFunction, outerValue, tooLate;
 
 outerValue = 'ninja';
 
@@ -23,42 +23,25 @@ outerFunction();
 
 later('wakizashi');
 
-Ninja = function() {
-  var feints;
-  feints = 0;
-  this.getFeints = function() {
-    return feints;
+bind = function(context, name) {
+  return function() {
+    return context[name].apply(context, arguments);
   };
-  this.feint = function() {
-    feints++;
-  };
-  return this;
 };
 
-ninja = new Ninja();
-
-console.log(ninja.feint());
-
-console.log(ninja.feints);
-
-animateIt = function(elementId) {
-  var elem, tick, timer;
-  elem = document.querySelector(elementId);
-  tick = 0;
-  return timer = setInterval(function() {
-    if (tick < 100) {
-      elem.style.left = elem.style.top = tick + "px";
-      return tick++;
-    } else {
-      clearInterval(timer);
-      console.log(tick);
-      console.log(elem);
-      return console.log(timer);
-    }
-  }, 10);
+button = {
+  clicked: false,
+  counter: 0,
+  click: function() {
+    this.clicked = true;
+    this.counter++;
+    return console.log("The button has been clicked " + this.counter + " times");
+  }
 };
 
-animateIt('#box');
+elem = document.querySelector('#button');
+
+elem.addEventListener('click', bind(button, 'click'), false);
 
 /*
 //# sourceMappingURL=ch5-closures.js.map
