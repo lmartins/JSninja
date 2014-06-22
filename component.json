@@ -1,10 +1,8 @@
 {
-  "name": "Testing",
-  "paths": [
-    "src/component"
-  ],
+  "name": "JSNinjaBook",
+  "paths": [],
   "local": [],
   "dependencies": {
-    "jashkenas/underscore": "*"
+    "component/query": "*"
   }
 }

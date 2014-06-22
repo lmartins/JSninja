@@ -1,38 +1,26 @@
 'use strict';
 
-var gulp            = require('gulp'),
-    gutil           = require('gulp-util'),
-    sass            = require('gulp-sass'),
-    prefix          = require('gulp-autoprefixer'),
-    coffee          = require('gulp-coffee'),
-    coffeelint      = require('gulp-coffeelint'),
-    component       = require('gulp-component'),
-    componentcoffee = require('component-coffee'),
-    plumber         = require('gulp-plumber'),
-    changed         = require('gulp-changed'),
-    uglify          = require('gulp-uglify'),
-    connect         = require('gulp-connect'),
-    // livereload      = require('gulp-livereload'),
-    watch           = require('gulp-watch'),
-    notify          = require('gulp-notify');
-    // floserver  = require("./flo_server.js");
+var
+  gulp            = require('gulp'),
+  gulpLoadPlugins = require('gulp-load-plugins'),
+  plugins         = gulpLoadPlugins(),
+  webpack         = require('webpack'),
+  ComponentPlugin = require("component-webpack-plugin"),
+  info            = require('./package.json'),
+  webpackCompiler;
 
-var options = {
+var config = {
 
-  COFFEE: {
-    src: ["src/coffee/**/*.coffee"],
-    build: "build/js/"
-  },
-
-  COMPONENT: {
-    manifest: "component.json",
-    // este src é usado para fazer watching de components pessoais
-    src: ["mycomponents/**/*.coffee", "mycomponents/**/*.js", "mycomponents/**/*.css"],
-    build: "build/css/"
+  JS: {
+    src: ["src/js/**/*.js"],
+    build: "build/js/",
+    buildFiles: "build/js/*.js"
   },
 
   HTML:{
-    src: '*.html'
+    src: ['pages/**/*.hbs', 'templates/**/*.hbs'],
+    build: "./",
+    buildFiles: ["build/*.html"]
   },
 
   SASS: {
@@ -41,140 +29,149 @@ var options = {
   },
 
   IMAGES: {
-    src    : "src/images/**/*",
-    build  : "build/images",
+    src: ["images/**/*.jpg", "!images/**/*.png"],
+    build: "build/images/",
+
+    png: {
+      src: "images/**/*.png",
+      build: "build/images/"
+    }
+
   },
 
-  LIVE_RELOAD_PORT: 35729
+  ICONS: {
+    src      : 'sass/app/components/icons/svg/*.svg',
+    build    : 'build/css/fonts/',
+    fontname : 'icon'
+  }
 
 }
 
 // SERVER ---------------------------------------------------------------------
 gulp.task('connect', function() {
-  connect.server({
-    // root: '__dirname',
-    livereload: true
+  plugins.connect.server({
+    root: 'build/',
+    port: 8000,
+    livereload: false
   });
 });
 
+
 // SASS -----------------------------------------------------------------------
 gulp.task('sass', function() {
-  gulp.src( options.SASS.src )
-    // .pipe(watch({
-    //   name: "Sass"
-    // }))
-    .pipe(plumber())
-    .pipe(sass({
-      outputStyle: 'compressed'
+  gulp.src( config.SASS.src )
+    .pipe(plugins.plumber())
+    .pipe(plugins.sass({
+      outputStyle: 'compressed',
       }))
-    // .on("error", notify.onError())
+    .on("error", plugins.notify.onError())
     .on("error", function (err) {
       console.log("Error:", err);
     })
-    .pipe(prefix( "last 1 version" ))
-    .pipe(gulp.dest( options.SASS.build ))
-    .pipe(connect.reload());
+    .pipe( plugins.autoprefixer (
+        "last 2 versions", "> 10%", "ie 9"
+        ))
+    .pipe( gulp.dest( config.SASS.build ) )
+    .pipe( plugins.livereload() );
 });
 
 
-// COFFEESCRIPT ---------------------------------------------------------------
-gulp.task('coffee', function () {
-  gulp.src( options.COFFEE.src )
-    // .pipe(watch({
-    //   name: "Coffee"
-    // }))
-    .pipe(changed( options.COFFEE.build , { extension: '.js' }))
-    .pipe(coffeelint())
-    .pipe(coffeelint.reporter())
-    .pipe(coffee({
-      bare: true,
-      sourceMap: true
-      })
-      .on('error', gutil.log))
-    .pipe(gulp.dest( options.COFFEE.build ))
-    .pipe(connect.reload());
+// WEBPACK --------------------------------------------------------------------
+gulp.task('webpack', function(callback) {
+  webpackCompiler.run(function(err, stats) {
+    if (err) {
+      throw new plugins.util.PluginError('webpack', err);
+    }
+    plugins.util.log('webpack', stats.toString({
+      colors: true,
+    }));
+    callback();
+  });
 });
 
+var webpackConfig = {
+  cache: true,
+  debug: true,
+  progress: true,
+  colors: true,
+  devtool: 'source-map',
+  entry: {
+    main: './src/js/main.js',
+  },
+  output: {
+    path: config.JS.build ,
+    filename: '[name].bundle.js',
+    chunkFilename: '[id].chunk.js',
+    publicPath: '/build/js/',
+  },
+  module:{
+    loaders: [
+      { test: /\.html$/, loader: "html" },
+      { test: /\.css$/, loader: "css" }
+    ]
+  }
 
+};
 
-// COMPONENT ------------------------------------------------------------------
-gulp.task('component-js', function () {
-  gulp.src( options.COMPONENT.manifest )
-    // .pipe(watch({
-    //   name: "ComponentJS"
-    // }))
-    .pipe(component.scripts({
-      standalone: false,
-      configure: function (builder) {
-        builder.use( componentcoffee )
-      }
-    }))
-    .pipe(gulp.dest( options.COFFEE.build ))
-})
+gulp.task('set-env-dev', function() {
+  webpackConfig.plugins = [
+    new webpack.BannerPlugin(info.name + '\n' + info.version + ':' + Date.now() + ' [development build]'),
+    new ComponentPlugin()
+  ];
+  webpackCompiler = webpack( webpackConfig );
+});
 
-gulp.task('component-css', function () {
-  gulp.src( options.COMPONENT.manifest )
-    // .pipe(watch({
-    //   name: "ComponentCSS"
-    // }))
-    .pipe(component.styles({
-      configure: function (builder) {
-        builder.use( sass )
-      }
-    }))
-    .pipe(gulp.dest( options.SASS.build ))
-})
+gulp.task('set-env-prod', function() {
+  webpackConfig.debug = false;
+  webpackConfig.devtool = "";
+  webpackConfig.plugins = [
+    new webpack.optimize.UglifyJsPlugin(),
+    new ComponentPlugin()
+  ];
+  webpackCompiler = webpack( webpackConfig );
+});
 
 
 // BOWER ----------------------------------------------------------------------
-gulp.task ('bowerCopy', function () {
+gulp.task ('bower', function () {
   gulp.src ([
-      'src/vendor/jquery/dist/jquery.js',
-      'src/vendor/backbone/backbone.js',
-      'src/vendor/underscore/underscore.js'
-      ])
-    .pipe (uglify())
-    .pipe (gulp.dest( "build/vendor/" ))
-});
-
-gulp.task ('bowerMerge', function () {
-  gulp.src ([
-      'src/vendor/jquery-easing/jquery.easing.js'
+      './vendor/bower/owl.carousel/dist/owl.carousel.js'
     ])
-    .pipe (concat ("bundle.js"))
-    .pipe (uglify())
-    .pipe (gulp.dest ("build/vendor/"))
+    .pipe( plugins.concat("plugins.js") )
+    .pipe( plugins.uglify() )
+    .pipe( gulp.dest ( config.JS.build ) )
 });
 
-gulp.task('bower', [ 'bowerCopy', 'bowerMerge' ]);
+
+// JAVASCRIPT RELOADING -------------------------------------------------------
+gulp.task('js', function () {
+  gulp.src( config.JS.buildFiles )
+    .pipe( plugins.changed ( config.JS.buildFiles ))
+    .pipe( plugins.livereload() );
+});
 
 
 
-// HTML -----------------------------------------------------------------------
+
+
+// HTML TEMPORARIO --------------------------------------------------------------
 gulp.task('html', function () {
-  gulp.src( options.HTML.src )
-    // .pipe(watch({
-    //   name: "HTML"
-    // }))
-    .pipe(connect.reload());
+  gulp.src( config.HTML.buildFiles )
+    .pipe( plugins.livereload() );
 });
 
 
 
 
 // GLOBAL TASKS ---------------------------------------------------------------
-// gulp.task('default', [ 'html', 'sass', 'coffee' ]);
-
-gulp.task('component', [ 'component-js', 'component-css' ]);
 
 gulp.task('watch', function () {
-  gulp.watch( options.HTML.src , ['html']);
-  gulp.watch( options.COFFEE.src , ['coffee']);
-  gulp.watch( [options.COMPONENT.manifest, options.COMPONENT.src] , ['component-js', 'component-css']);
-  // gulp.watch(options.IMAGE_SOURCE, ['images']);
-  gulp.watch( options.HTML.src , ['html']  );
-  gulp.watch( options.SASS.src , ['sass']  );
-  // floserver()
+  gulp.watch( config.HTML.buildFiles , ['html'] );
+  gulp.watch( config.JS.src , ["webpack"]);
+  gulp.watch( config.JS.buildFiles , ["js"] );
+  gulp.watch( config.SASS.src , ['sass']  );
 });
 
-gulp.task('default', ['connect', 'watch']);
+gulp.task('default', ['prod'] );
+gulp.task('dev', ['set-env-dev', 'connect', 'watch'] );
+gulp.task('prod', ['set-env-prod', 'connect', 'watch'] );
