@@ -8,10 +8,6 @@ values.sort( function (value1, value2) {
 });
 console.log(values);
 
-function ninja () {
-  // body...
-}
-ninja();
 
 var samurai = function () {
   // body...

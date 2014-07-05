@@ -1,13 +1,12 @@
 'use strict';
 
-var
-  gulp            = require('gulp'),
-  gulpLoadPlugins = require('gulp-load-plugins'),
-  plugins         = gulpLoadPlugins(),
-  webpack         = require('webpack'),
-  ComponentPlugin = require("component-webpack-plugin"),
-  info            = require('./package.json'),
-  webpackCompiler;
+var gulp            = require('gulp'),
+    gulpLoadPlugins = require('gulp-load-plugins'),
+    plugins         = gulpLoadPlugins(),
+    webpack         = require('webpack'),
+    ComponentPlugin = require("component-webpack-plugin"),
+    info            = require('./package.json'),
+    webpackCompiler;
 
 var config = {
 
@@ -18,31 +17,13 @@ var config = {
   },
 
   HTML:{
-    src: ['pages/**/*.hbs', 'templates/**/*.hbs'],
-    build: "./",
-    buildFiles: ["build/*.html"]
+    // src: ['pages/**/*.hbs']
+    build: "build/*.html"
   },
 
   SASS: {
-    src: "src/sass/**/*.scss",
+    src: "sass/**/*.scss",
     build: "build/css/"
-  },
-
-  IMAGES: {
-    src: ["images/**/*.jpg", "!images/**/*.png"],
-    build: "build/images/",
-
-    png: {
-      src: "images/**/*.png",
-      build: "build/images/"
-    }
-
-  },
-
-  ICONS: {
-    src      : 'sass/app/components/icons/svg/*.svg',
-    build    : 'build/css/fonts/',
-    fontname : 'icon'
   }
 
 }
@@ -50,7 +31,7 @@ var config = {
 // SERVER ---------------------------------------------------------------------
 gulp.task('connect', function() {
   plugins.connect.server({
-    root: 'build/',
+    root: '../',
     port: 8000,
     livereload: false
   });
@@ -62,14 +43,14 @@ gulp.task('sass', function() {
   gulp.src( config.SASS.src )
     .pipe(plugins.plumber())
     .pipe(plugins.sass({
-      outputStyle: 'compressed',
+      outputStyle: 'compressed'
       }))
     .on("error", plugins.notify.onError())
     .on("error", function (err) {
       console.log("Error:", err);
     })
     .pipe( plugins.autoprefixer (
-        "last 2 versions", "> 10%", "ie 9"
+        "last 1 versions", "> 10%", "ie 9"
         ))
     .pipe( gulp.dest( config.SASS.build ) )
     .pipe( plugins.livereload() );
@@ -109,6 +90,11 @@ var webpackConfig = {
       { test: /\.html$/, loader: "html" },
       { test: /\.css$/, loader: "css" }
     ]
+  },
+  externals: {
+    // require("jquery") is external and available
+    //  on the global var jQuery
+    "jquery": "jQuery"
   }
 
 };
@@ -132,17 +118,6 @@ gulp.task('set-env-prod', function() {
 });
 
 
-// BOWER ----------------------------------------------------------------------
-gulp.task ('bower', function () {
-  gulp.src ([
-      './vendor/bower/owl.carousel/dist/owl.carousel.js'
-    ])
-    .pipe( plugins.concat("plugins.js") )
-    .pipe( plugins.uglify() )
-    .pipe( gulp.dest ( config.JS.build ) )
-});
-
-
 // JAVASCRIPT RELOADING -------------------------------------------------------
 gulp.task('js', function () {
   gulp.src( config.JS.buildFiles )
@@ -153,13 +128,11 @@ gulp.task('js', function () {
 
 
 
-
 // HTML TEMPORARIO --------------------------------------------------------------
 gulp.task('html', function () {
   gulp.src( config.HTML.buildFiles )
     .pipe( plugins.livereload() );
 });
-
 
 
 
@@ -175,3 +148,5 @@ gulp.task('watch', function () {
 gulp.task('default', ['prod'] );
 gulp.task('dev', ['set-env-dev', 'connect', 'watch'] );
 gulp.task('prod', ['set-env-prod', 'connect', 'watch'] );
+
+gulp.task('shipit', ['set-env-prod', 'webpack'] );
