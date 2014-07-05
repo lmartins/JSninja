@@ -31,7 +31,7 @@ var config = {
 // SERVER ---------------------------------------------------------------------
 gulp.task('connect', function() {
   plugins.connect.server({
-    root: '../',
+    root: './',
     port: 8000,
     livereload: false
   });
